@@ -6,8 +6,10 @@ export const signInSchem = z.object({
     .min(1, { error: "email is required" })
     .email({ error: "Please enter a valid email address" }),
 
-  possword: z
+  password: z
     .string()
     .min(1, { error: "Password is required" })
     .min(8, { error: "Password must be at least 8 characters" }),
 });
+
+export type SignInSchemaType = z.infer<typeof signInSchem>;
