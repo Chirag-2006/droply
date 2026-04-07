@@ -203,7 +203,7 @@ export function SignUpForm() {
     );
   }
   return (
-    <Card className="w-full max-w-md border bg-accent-foreground text-primary-foreground shadow-xl">
+    <Card className="w-full max-w-md border bg-muted/30 text-foreground shadow-xl">
       <CardHeader className="flex flex-col gap-1 items-center pb-2">
         <h1 className="text-2xl font-bold">Create Your Account</h1>
         <p className="text-muted-foreground text-center">
