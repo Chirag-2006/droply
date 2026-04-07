@@ -18,7 +18,7 @@ import { Button } from "./ui/button";
 
 import Link from "next/link";
 
-export function SignInFrom() {
+export function SignInForm() {
   // states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);

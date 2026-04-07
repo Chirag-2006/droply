@@ -69,9 +69,16 @@ export function SignUpForm() {
       console.log("Signup result:", result);
       console.log("SignUp status:", signUp.status);
 
-      const emailResult = await signUp.verifications.sendEmailCode();
-      console.log("Email sent result:", emailResult);
-      setVerifying(true);
+      if (result.error) {
+        console.log("Error in Result", result.error);
+        setAuthError(result.error.message || "Sign-up Error");
+      }
+
+      if(!result.error){
+        await signUp.verifications.sendEmailCode();
+        setVerifying(true);
+      }
+      // console.log("Email sent result:", emailResult);
 
       // simulate API delay
       // await new Promise((resolve) => setTimeout(resolve, 1000));
