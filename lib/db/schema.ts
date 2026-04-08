@@ -65,10 +65,13 @@ export const filesRelations = relations(files, ({ one, many }) => ({
   parent: one(files, {
     fields: [files.parentId], // The foreign key in this table
     references: [files.id], // The primary key in the parent table
+    relationName: "folder_hierarchy",
   }),
 
   // Relationship to child files/folders
-  children: many(files),
+  children: many(files, {
+    relationName: "folder_hierarchy",
+  }),
 }));
 
 /**
