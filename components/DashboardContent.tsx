@@ -2,12 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileUp, FileText, LayoutGrid, List, Plus, Search } from "lucide-react";
+import { FileUp, FileText, LayoutGrid, List, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-// import FileUploadForm from "@/components/FileUploadForm";
-// import FileList from "@/components/FileList";
+import FileUploadForm from "@/components/FileUploadForm";
+import FileList from "@/components/FileList";
+import NewFolderDialog from "@/components/NewFolderDialog";
 
 interface DashboardContentProps {
   userId: string;
@@ -22,14 +23,13 @@ export default function DashboardContent({
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const handleFileUploadSuccess = useCallback(() => {
+  const handleRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   const handleFolderChange = useCallback((folderId: string | null) => {
     setCurrentFolder(folderId);
   }, []);
-
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -47,31 +47,38 @@ export default function DashboardContent({
             Manage your media and creative assets.
           </p>
         </div>
-        
+
         <div className="flex gap-2 items-center">
-            <Button className="rounded-full shadow-lg shadow-primary/20 gap-2 px-6 py-6">
-                <Plus className="w-4 h-4" />
-                New Folder
-            </Button>
+          <NewFolderDialog
+            parentId={currentFolder}
+            onSuccess={handleRefresh}
+          />
         </div>
       </div>
 
       {/* Stats/Quick Actions (Optional Modern Touch) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-         {[
-           { label: "Total Files", value: "128", color: "bg-blue-500" },
-           { label: "Storage Used", value: "1.2 GB", color: "bg-purple-500" },
-           { label: "Folders", value: "12", color: "bg-orange-500" },
-           { label: "Shared", value: "5", color: "bg-green-500" }
-         ].map((stat, i) => (
-           <Card key={i} className="border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-md transition-all group overflow-hidden">
-              <div className={`absolute top-0 left-0 w-1 h-full ${stat.color} opacity-50 group-hover:opacity-100 transition-opacity`} />
-              <CardContent className="p-6">
-                 <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                 <p className="text-2xl font-bold mt-1">{stat.value}</p>
-              </CardContent>
-           </Card>
-         ))}
+        {[
+          { label: "Total Files", value: "128", color: "bg-blue-500" },
+          { label: "Storage Used", value: "1.2 GB", color: "bg-purple-500" },
+          { label: "Folders", value: "12", color: "bg-orange-500" },
+          { label: "Shared", value: "5", color: "bg-green-500" },
+        ].map((stat, i) => (
+          <Card
+            key={i}
+            className="border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-md transition-all group overflow-hidden"
+          >
+            <div
+              className={`absolute top-0 left-0 w-1 h-full ${stat.color} opacity-50 group-hover:opacity-100 transition-opacity`}
+            />
+            <CardContent className="p-6">
+              <p className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </p>
+              <p className="text-2xl font-bold mt-1">{stat.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -86,20 +93,11 @@ export default function DashboardContent({
             </CardHeader>
 
             <CardContent className="p-6">
-              <div className="border-2 border-dashed border-primary/20 rounded-2xl p-8 text-center hover:border-primary/40 transition-colors cursor-pointer group bg-primary/5">
-                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <Plus className="w-6 h-6 text-primary" />
-                 </div>
-                 <p className="font-medium">Drop files here</p>
-                 <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
-              </div>
-              
-              {/* This is where the actual form would go */}
-              {/* <FileUploadForm
+              <FileUploadForm
                 userId={userId}
-                onUploadSuccess={handleFileUploadSuccess}
+                onUploadSuccess={handleRefresh}
                 currentFolder={currentFolder}
-              /> */}
+              />
             </CardContent>
           </Card>
         </div>
@@ -107,32 +105,35 @@ export default function DashboardContent({
         {/* File Explorer Section */}
         <div className="lg:col-span-8 space-y-4">
           <div className="flex justify-between items-center gap-4 bg-card/40 backdrop-blur-md p-2 rounded-2xl border border-border/50">
-             <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9 bg-transparent border-none focus-visible:ring-0" placeholder="Search files..." />
-             </div>
-             
-             <div className="flex gap-1 p-1 bg-muted/50 rounded-xl">
-                <Button 
-                    variant={viewMode === "grid" ? "secondary" : "ghost"} 
-                    size="icon" 
-                    className="h-8 w-8 rounded-lg"
-                    onClick={() => setViewMode("grid")}
-                >
-                    <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button 
-                    variant={viewMode === "list" ? "secondary" : "ghost"} 
-                    size="icon" 
-                    className="h-8 w-8 rounded-lg"
-                    onClick={() => setViewMode("list")}
-                >
-                    <List className="h-4 w-4" />
-                </Button>
-             </div>
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9 bg-transparent border-none focus-visible:ring-0"
+                placeholder="Search files..."
+              />
+            </div>
+
+            <div className="flex gap-1 p-1 bg-muted/50 rounded-xl">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-8 w-8 rounded-lg"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
-          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-[400px]">
+          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-100">
             <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-purple-500" />
@@ -140,20 +141,14 @@ export default function DashboardContent({
               <h2 className="text-xl font-bold">Recent Files</h2>
             </CardHeader>
 
-            <CardContent className="p-6">
-               <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                     <FileText className="w-10 h-10 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="text-lg font-semibold">No files found</h3>
-                  <p className="text-muted-foreground max-w-[200px]">Start uploading your images to see them here.</p>
-               </div>
-
-              {/* <FileList
+            <CardContent className="px-6">
+              <FileList
                 userId={userId}
+                parentId={currentFolder}
                 refreshTrigger={refreshTrigger}
                 onFolderChange={handleFolderChange}
-              /> */}
+                viewMode={viewMode}
+              />
             </CardContent>
           </Card>
         </div>
