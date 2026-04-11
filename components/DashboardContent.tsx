@@ -1,14 +1,27 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, Fragment } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileUp, FileText, LayoutGrid, List, Search } from "lucide-react";
+import { FileUp, FileText, LayoutGrid, List, Search, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 
 import FileUploadForm from "@/components/FileUploadForm";
 import FileList from "@/components/FileList";
 import NewFolderDialog from "@/components/NewFolderDialog";
+
+interface BreadcrumbItemType {
+  id: string;
+  name: string;
+}
 
 interface DashboardContentProps {
   userId: string;
@@ -21,7 +34,8 @@ export default function DashboardContent({
 }: DashboardContentProps) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItemType[]>([]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   const handleRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -30,6 +44,26 @@ export default function DashboardContent({
   const handleFolderChange = useCallback((folderId: string | null) => {
     setCurrentFolder(folderId);
   }, []);
+
+  // 🍞 Fetch folder path for breadcrumbs
+  useEffect(() => {
+    const fetchPath = async () => {
+      if (!currentFolder) {
+        setBreadcrumbs([]);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/folders/path?folderId=${currentFolder}`);
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setBreadcrumbs(data);
+        }
+      } catch (error) {
+        console.error("Breadcrumb fetch error:", error);
+      }
+    };
+    fetchPath();
+  }, [currentFolder]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -133,13 +167,50 @@ export default function DashboardContent({
             </div>
           </div>
 
-          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-100">
+          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-100 overflow-hidden">
             <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-purple-500" />
               </div>
               <h2 className="text-xl font-bold">Recent Files</h2>
             </CardHeader>
+            
+            {/* Breadcrumbs Navigation inside the Card */}
+            <div className="px-6 py-3 bg-muted/20 border-b border-border/30">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink 
+                      className="cursor-pointer flex items-center gap-2 hover:text-primary transition-colors text-xs"
+                      onClick={() => handleFolderChange(null)}
+                    >
+                      <Home className="h-3.5 w-3.5" />
+                      Root
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  
+                  {breadcrumbs.map((crumb, index) => (
+                    <Fragment key={crumb.id}>
+                      <BreadcrumbSeparator />
+                      <BreadcrumbItem>
+                        {index === breadcrumbs.length - 1 ? (
+                          <BreadcrumbPage className="font-bold text-primary max-w-[120px] truncate text-xs">
+                            {crumb.name}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink 
+                            className="cursor-pointer hover:text-primary transition-colors max-w-[120px] truncate text-xs"
+                            onClick={() => handleFolderChange(crumb.id)}
+                          >
+                            {crumb.name}
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                    </Fragment>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
 
             <CardContent className="px-6">
               <FileList
