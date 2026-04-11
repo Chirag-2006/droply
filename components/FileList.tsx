@@ -36,7 +36,8 @@ export default function FileList({
   refreshTrigger,
   onFolderChange,
   viewMode,
-}: FileListProps) {
+  showOnlyStarred = false,
+}: FileListProps & { showOnlyStarred?: boolean }) {
   const [files, setFiles] = useState<FileType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,9 @@ export default function FileList({
       setError(null);
       try {
         let url = `/api/files?userId=${userId}`;
-        if (parentId) {
+        if (showOnlyStarred) {
+          url += `&isStarred=true`;
+        } else if (parentId) {
           url += `&parentId=${parentId}`;
         }
         
@@ -65,7 +68,29 @@ export default function FileList({
     };
 
     fetchFiles();
-  }, [userId, parentId, refreshTrigger]);
+  }, [userId, parentId, refreshTrigger, showOnlyStarred]);
+
+  const toggleStar = async (e: React.MouseEvent, fileId: string) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(`/api/files/${fileId}/star`, {
+        method: "PATCH",
+      });
+      if (response.ok) {
+        const updatedFile = await response.json();
+        // If we are in "starred only" view, we might want to remove it from the list
+        if (showOnlyStarred && !updatedFile.isStarred) {
+          setFiles((prev) => prev.filter((f) => f.id !== fileId));
+        } else {
+          setFiles((prev) =>
+            prev.map((f) => (f.id === fileId ? updatedFile : f))
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling star:", error);
+    }
+  };
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -120,7 +145,9 @@ export default function FileList({
         </div>
         <h3 className="text-lg font-semibold">No files found</h3>
         <p className="text-muted-foreground max-w-[200px]">
-          {parentId ? "This folder is empty." : "Start uploading your images to see them here."}
+          {showOnlyStarred 
+            ? "You haven't starred any files yet." 
+            : parentId ? "This folder is empty." : "Start uploading your images to see them here."}
         </p>
       </div>
     );
@@ -154,7 +181,19 @@ export default function FileList({
                 </div>
               </div>
               <div className="p-4">
-                <p className="font-medium truncate text-sm mb-1">{file.name}</p>
+                <div className="flex items-center gap-2 mb-1 overflow-hidden">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0 rounded-full hover:bg-yellow-400/10"
+                    onClick={(e) => toggleStar(e, file.id)}
+                  >
+                    <Star 
+                      className={`h-3.5 w-3.5 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} 
+                    />
+                  </Button>
+                  <p className="font-medium truncate text-sm">{file.name}</p>
+                </div>
                 <div className="flex justify-between items-center">
                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
                       {file.isFolder ? 'Folder' : formatSize(file.size)}
@@ -183,17 +222,27 @@ export default function FileList({
           className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group ${file.isFolder ? 'cursor-pointer' : ''}`}
           onClick={() => file.isFolder ? onFolderChange(file.id) : null}
         >
-          <div className="col-span-6 flex items-center gap-3">
+          <div className="col-span-6 flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 rounded-full hover:bg-yellow-400/10"
+              onClick={(e) => toggleStar(e, file.id)}
+            >
+              <Star 
+                className={`h-4 w-4 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} 
+              />
+            </Button>
             {file.isFolder ? (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <Folder className="w-5 h-5 text-primary fill-primary/10" />
               </div>
             ) : file.type.startsWith("image/") ? (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
                 <Image src={file.fileUrl} alt={file.name} width={40} height={40} className="object-cover" />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                 <FileText className="w-5 h-5 text-primary" />
               </div>
             )}
@@ -240,10 +289,6 @@ function FileActions({ file }: { file: FileType }) {
             <span>Download</span>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="rounded-lg">
-          <Star className="mr-2 h-4 w-4" />
-          <span>Add to Starred</span>
-        </DropdownMenuItem>
         <DropdownMenuItem className="text-destructive focus:text-destructive rounded-lg">
           <Trash2 className="mr-2 h-4 w-4" />
           <span>Move to Trash</span>
