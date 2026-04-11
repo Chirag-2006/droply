@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { File as FileType } from "@/lib/db/schema";
 import { 
   FileText,  
@@ -42,6 +42,16 @@ export default function FileList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // To keep track of debounced API calls per file
+  const starDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  useEffect(() => {
+    // Cleanup timeouts on unmount
+    return () => {
+      starDebounceRefs.current.forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
+
   useEffect(() => {
     const fetchFiles = async () => {
       setLoading(true);
@@ -72,24 +82,65 @@ export default function FileList({
 
   const toggleStar = async (e: React.MouseEvent, fileId: string) => {
     e.stopPropagation();
-    try {
-      const response = await fetch(`/api/files/${fileId}/star`, {
-        method: "PATCH",
-      });
-      if (response.ok) {
-        const updatedFile = await response.json();
-        // If we are in "starred only" view, we might want to remove it from the list
-        if (showOnlyStarred && !updatedFile.isStarred) {
-          setFiles((prev) => prev.filter((f) => f.id !== fileId));
-        } else {
-          setFiles((prev) =>
-            prev.map((f) => (f.id === fileId ? updatedFile : f))
-          );
-        }
+    
+    // 1. Capture the target file's current state (for UI update)
+    const targetFile = files.find(f => f.id === fileId);
+    if (!targetFile) return;
+
+    // 2. Optimistically update the UI immediately
+    const nextIsStarred = !targetFile.isStarred;
+    
+    setFiles((prev) => {
+      if (showOnlyStarred && !nextIsStarred) {
+         return prev.filter(f => f.id !== fileId);
       }
-    } catch (error) {
-      console.error("Error toggling star:", error);
+      return prev.map((f) => (f.id === fileId ? { ...f, isStarred: nextIsStarred } : f));
+    });
+
+    // 3. Clear existing timeout for this specific file
+    if (starDebounceRefs.current.has(fileId)) {
+      clearTimeout(starDebounceRefs.current.get(fileId));
     }
+
+    // 4. Set a new 2-second timeout to perform the backend update
+    const timeoutId = setTimeout(async () => {
+      starDebounceRefs.current.delete(fileId);
+      
+      try {
+        const response = await fetch(`/api/files/${fileId}/star`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isStarred: nextIsStarred }),
+        });
+        
+        if (!response.ok) {
+          throw new Error("Failed to update star status");
+        }
+        
+        const updatedFile = await response.json();
+        
+        // Sync the state with server response
+        setFiles((prev) => {
+           const exists = prev.some(f => f.id === fileId);
+           if (!exists && showOnlyStarred && updatedFile.isStarred) {
+             return [...prev, updatedFile];
+           }
+           return prev.map((f) => (f.id === fileId ? updatedFile : f));
+        });
+      } catch (error) {
+        console.error("Error toggling star:", error);
+        // Rollback UI on error
+        setFiles((prev) => {
+           const exists = prev.some(f => f.id === fileId);
+           if (!exists && showOnlyStarred && !nextIsStarred) {
+             return prev; 
+           }
+           return prev.map((f) => (f.id === fileId ? targetFile : f));
+        });
+      }
+    }, 1500);
+
+    starDebounceRefs.current.set(fileId, timeoutId);
   };
 
   const formatSize = (bytes: number) => {

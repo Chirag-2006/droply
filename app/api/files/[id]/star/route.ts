@@ -15,8 +15,10 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const body = await req.json().catch(() => ({}));
+    const { isStarred } = body;
 
-    // Fetch the file to check ownership and current status
+    // Fetch the file to check ownership
     const [file] = await db
       .select()
       .from(files)
@@ -26,11 +28,14 @@ export async function PATCH(
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
-    // Toggle the isStarred field
+    // Use the provided isStarred or toggle the current state
+    const targetState = typeof isStarred === "boolean" ? isStarred : !file.isStarred;
+
+    // Update the isStarred field
     const [updatedFile] = await db
       .update(files)
       .set({
-        isStarred: !file.isStarred,
+        isStarred: targetState,
         updatedAt: new Date(),
       })
       .where(and(eq(files.id, id), eq(files.userId, userId)))
