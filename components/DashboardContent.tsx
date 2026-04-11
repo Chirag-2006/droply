@@ -66,7 +66,7 @@ export default function DashboardContent({
          ].map((stat, i) => (
            <Card key={i} className="border-none bg-card/40 backdrop-blur-md shadow-sm hover:shadow-md transition-all group overflow-hidden">
               <div className={`absolute top-0 left-0 w-1 h-full ${stat.color} opacity-50 group-hover:opacity-100 transition-opacity`} />
-              <CardContent className="p-6">
+              <CardContent className="px-6 py-2">
                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
               </CardContent>
@@ -76,9 +76,9 @@ export default function DashboardContent({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Upload Section - Modern Floating Sidebar style */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-1">
           <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50 pb-4">
+            <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50 pb-4 ">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <FileUp className="h-5 w-5 text-primary" />
               </div>
@@ -132,7 +132,7 @@ export default function DashboardContent({
              </div>
           </div>
 
-          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-[400px]">
+          <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-100">
             <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50">
               <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-purple-500" />
@@ -146,7 +146,7 @@ export default function DashboardContent({
                      <FileText className="w-10 h-10 text-muted-foreground/50" />
                   </div>
                   <h3 className="text-lg font-semibold">No files found</h3>
-                  <p className="text-muted-foreground max-w-[200px]">Start uploading your images to see them here.</p>
+                  <p className="text-muted-foreground max-w-50">Start uploading your images to see them here.</p>
                </div>
 
               {/* <FileList
