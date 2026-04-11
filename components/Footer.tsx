@@ -1,4 +1,5 @@
 import { CloudUpload } from "lucide-react"
+import Link from "next/link";
 import React from "react";
 
 const Footer = () => {
@@ -9,6 +10,12 @@ const Footer = () => {
           <CloudUpload className="h-5 w-5 text-primary" />
           <h2 className="text-lg font-bold">Droply</h2>
         </div>
+         <nav className="flex gap-8 text-sm font-medium text-muted-foreground">
+                      <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
+                      <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
+                      <Link href="#" className="hover:text-primary transition-colors">Twitter</Link>
+                      <Link href="#" className="hover:text-primary transition-colors">GitHub</Link>
+                    </nav>
         <p className="text-sm text-muted-foreground">
           &copy; {new Date().getFullYear()} Droply
         </p>

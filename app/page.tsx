@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   const { isLoaded } = useUser();
@@ -220,7 +221,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-12 bg-background">
+      {/* <footer className="border-t py-12 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2">
@@ -242,7 +243,8 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </footer>
+      </footer> */}
+      <Footer />
     </div>
   );
 }
