@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const queryUserId = searchParams.get("userId");
     const parentId = searchParams.get("parentId");
     const isStarred = searchParams.get("isStarred") === "true";
+    const isTrash = searchParams.get("isTrash") === "true";
 
     if (!queryUserId || queryUserId !== userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,17 +25,23 @@ export async function GET(req: NextRequest) {
     // fetching file from db and get latest file
     // let userFiles;
 
-    const conditions = [eq(files.userId, userId), eq(files.isTrash, false)];
+    const conditions = [eq(files.userId, userId)];
 
-    if (isStarred) {
-      conditions.push(eq(files.isStarred, true));
+    if (isTrash) {
+      conditions.push(eq(files.isTrash, true));
     } else {
-      if (parentId) {
-        conditions.push(eq(files.parentId, parentId));
+      conditions.push(eq(files.isTrash, false));
+      if (isStarred) {
+        conditions.push(eq(files.isStarred, true));
       } else {
-        conditions.push(isNull(files.parentId));
+        if (parentId) {
+          conditions.push(eq(files.parentId, parentId));
+        } else {
+          conditions.push(isNull(files.parentId));
+        }
       }
     }
+
 
     const userFiles = await db
       .select()

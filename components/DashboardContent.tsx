@@ -10,6 +10,7 @@ import {
   Search,
   Home,
   Star,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,7 @@ export default function DashboardContent({
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItemType[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [filter, setFilter] = useState<"all" | "starred">("all");
+  const [filter, setFilter] = useState<"all" | "starred" | "trash">("all");
 
   const handleRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -95,13 +96,6 @@ export default function DashboardContent({
             Manage your media and creative assets.
           </p>
         </div>
-
-        {/* <div className="flex gap-2 items-center">
-          <NewFolderDialog
-            parentId={currentFolder}
-            onSuccess={handleRefresh}
-          />
-        </div> */}
       </div>
 
       {/* Stats/Quick Actions (Optional Modern Touch) */}
@@ -190,6 +184,20 @@ export default function DashboardContent({
                   />
                   Starred
                 </Button>
+                <Button
+                  variant={filter === "trash" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="px-3 h-8 rounded-lg text-xs flex items-center gap-1.5"
+                  onClick={() => {
+                    setFilter("trash");
+                    setCurrentFolder(null);
+                  }}
+                >
+                  <Trash2
+                    className={`h-3 w-3 ${filter === "trash" ? "text-destructive" : ""}`}
+                  />
+                  Trash
+                </Button>
               </div>
 
               <div className="flex gap-1 p-1 bg-muted/50 rounded-xl">
@@ -219,12 +227,14 @@ export default function DashboardContent({
                 <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
                   {filter === "starred" ? (
                     <Star className="h-5 w-5 text-yellow-500 fill-yellow-500/20" />
+                  ) : filter === "trash" ? (
+                    <Trash2 className="h-5 w-5 text-destructive" />
                   ) : (
                     <FileText className="h-5 w-5 text-purple-500" />
                   )}
                 </div>
                 <h2 className="text-xl font-bold">
-                  {filter === "starred" ? "Starred Items" : "Recent Files"}
+                  {filter === "starred" ? "Starred Items" : filter === "trash" ? "Trash Bin" : "Recent Files"}
                 </h2>
               </div>
               {filter === "all" && (
@@ -284,6 +294,7 @@ export default function DashboardContent({
                 onFolderChange={handleFolderChange}
                 viewMode={viewMode}
                 showOnlyStarred={filter === "starred"}
+                showOnlyTrash={filter === "trash"}
               />
             </CardContent>
           </Card>

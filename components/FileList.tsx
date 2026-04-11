@@ -10,7 +10,10 @@ import {
   Star,
   ExternalLink,
   Loader2,
-  Folder
+  Folder,
+  AlertTriangle,
+  RefreshCcw,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +23,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import Image from "next/image";
 
 interface FileListProps {
@@ -28,6 +40,8 @@ interface FileListProps {
   refreshTrigger: number;
   onFolderChange: (folderId: string | null) => void;
   viewMode: "grid" | "list";
+  showOnlyStarred?: boolean;
+  showOnlyTrash?: boolean;
 }
 
 export default function FileList({
@@ -37,10 +51,14 @@ export default function FileList({
   onFolderChange,
   viewMode,
   showOnlyStarred = false,
-}: FileListProps & { showOnlyStarred?: boolean }) {
+  showOnlyTrash = false,
+}: FileListProps) {
   const [files, setFiles] = useState<FileType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fileToDelete, setFileToDelete] = useState<FileType | null>(null);
+  const [fileToPermanentDelete, setFileToPermanentDelete] = useState<FileType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // To keep track of debounced API calls per file
   const starDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -58,7 +76,9 @@ export default function FileList({
       setError(null);
       try {
         let url = `/api/files?userId=${userId}`;
-        if (showOnlyStarred) {
+        if (showOnlyTrash) {
+          url += `&isTrash=true`;
+        } else if (showOnlyStarred) {
           url += `&isStarred=true`;
         } else if (parentId) {
           url += `&parentId=${parentId}`;
@@ -78,16 +98,15 @@ export default function FileList({
     };
 
     fetchFiles();
-  }, [userId, parentId, refreshTrigger, showOnlyStarred]);
+  }, [userId, parentId, refreshTrigger, showOnlyStarred, showOnlyTrash]);
 
   const toggleStar = async (e: React.MouseEvent, fileId: string) => {
     e.stopPropagation();
+    if (showOnlyTrash) return;
     
-    // 1. Capture the target file's current state (for UI update)
     const targetFile = files.find(f => f.id === fileId);
     if (!targetFile) return;
 
-    // 2. Optimistically update the UI immediately
     const nextIsStarred = !targetFile.isStarred;
     
     setFiles((prev) => {
@@ -97,12 +116,10 @@ export default function FileList({
       return prev.map((f) => (f.id === fileId ? { ...f, isStarred: nextIsStarred } : f));
     });
 
-    // 3. Clear existing timeout for this specific file
     if (starDebounceRefs.current.has(fileId)) {
       clearTimeout(starDebounceRefs.current.get(fileId));
     }
 
-    // 4. Set a new 1.5-second timeout to perform the backend update
     const timeoutId = setTimeout(async () => {
       starDebounceRefs.current.delete(fileId);
       
@@ -119,7 +136,6 @@ export default function FileList({
         
         const updatedFile = await response.json();
         
-        // Sync the state with server response
         setFiles((prev) => {
            const exists = prev.some(f => f.id === fileId);
            if (!exists && showOnlyStarred && updatedFile.isStarred) {
@@ -129,7 +145,6 @@ export default function FileList({
         });
       } catch (error) {
         console.error("Error toggling star:", error);
-        // Rollback UI on error
         setFiles((prev) => {
            const exists = prev.some(f => f.id === fileId);
            if (!exists && showOnlyStarred && !nextIsStarred) {
@@ -141,6 +156,82 @@ export default function FileList({
     }, 1500);
 
     starDebounceRefs.current.set(fileId, timeoutId);
+  };
+
+  const deleteFile = async () => {
+    if (!fileToDelete) return;
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/files/${fileToDelete.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isTrash: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to move file to trash");
+      }
+
+      setFiles((prev) => prev.filter((f) => f.id !== fileToDelete.id));
+      toast.success(`${fileToDelete.isFolder ? "Folder" : "File"} moved to trash`, {
+        description: `"${fileToDelete.name}" is now in your trash bin.`,
+      });
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Error deleting file");
+    } finally {
+      setIsDeleting(false);
+      setFileToDelete(null);
+    }
+  };
+
+  const restoreFile = async (file: FileType) => {
+    try {
+      const response = await fetch(`/api/files/${file.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isTrash: false }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to restore file");
+      }
+
+      setFiles((prev) => prev.filter((f) => f.id !== file.id));
+      toast.success(`${file.isFolder ? "Folder" : "File"} restored`, {
+        description: `"${file.name}" has been restored to its original location.`,
+      });
+    } catch (error) {
+      console.error("Restore error:", error);
+      toast.error("Error restoring file");
+    }
+  };
+
+  const permanentDelete = async () => {
+    if (!fileToPermanentDelete) return;
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch(`/api/files/${fileToPermanentDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete file permanently");
+      }
+
+      setFiles((prev) => prev.filter((f) => f.id !== fileToPermanentDelete.id));
+      toast.success(`${fileToPermanentDelete.isFolder ? "Folder" : "File"} deleted permanently`, {
+        description: `"${fileToPermanentDelete.name}" has been removed forever.`,
+      });
+    } catch (error) {
+      console.error("Permanent delete error:", error);
+      toast.error("Error deleting file permanently");
+    } finally {
+      setIsDeleting(false);
+      setFileToPermanentDelete(null);
+    }
   };
 
   const formatSize = (bytes: number) => {
@@ -196,123 +287,179 @@ export default function FileList({
         </div>
         <h3 className="text-lg font-semibold">No files found</h3>
         <p className="text-muted-foreground max-w-50">
-          {showOnlyStarred 
-            ? "You haven't starred any files yet." 
-            : parentId ? "This folder is empty." : "Start uploading your images to see them here."}
+          {showOnlyTrash 
+            ? "Your trash bin is empty." 
+            : showOnlyStarred 
+              ? "You haven't starred any files yet." 
+              : parentId ? "This folder is empty." : "Start uploading your images to see them here."}
         </p>
-      </div>
-    );
-  }
-
-  if (viewMode === "grid") {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {files.map((file) => (
-          <Card 
-            key={file.id} 
-            className={`group border-none bg-card/40 backdrop-blur-md hover:bg-card/60 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-md ${file.isFolder ? 'cursor-pointer' : ''}`}
-            onClick={() => file.isFolder ? onFolderChange(file.id) : null}
-          >
-            <CardContent className="p-0">
-              <div className="aspect-video relative bg-muted/30 overflow-hidden flex items-center justify-center">
-                {file.isFolder ? (
-                  <Folder className="w-16 h-16 text-primary/40 fill-primary/10" />
-                ) : file.type.startsWith("image/") ? (
-                  <Image
-                    src={file.fileUrl}
-                    alt={file.name}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                  />
-                ) : (
-                  <FileText className="w-12 h-12 text-muted-foreground/30" />
-                )}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                   <FileActions file={file} />
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-1 overflow-hidden">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0 rounded-full hover:bg-yellow-400/10"
-                    onClick={(e) => toggleStar(e, file.id)}
-                  >
-                    <Star 
-                      className={`h-3.5 w-3.5 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} 
-                    />
-                  </Button>
-                  <p className="font-medium truncate text-sm">{file.name}</p>
-                </div>
-                <div className="flex justify-between items-center">
-                   <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
-                      {file.isFolder ? 'Folder' : formatSize(file.size)}
-                   </p>
-                   <p className="text-[10px] text-muted-foreground">{formatDate(file.createdAt)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-12 px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
-        <div className="col-span-6">Name</div>
-        <div className="col-span-2">Size</div>
-        <div className="col-span-3">Date</div>
-        <div className="col-span-1"></div>
-      </div>
-      {files.map((file) => (
-        <div 
-          key={file.id} 
-          className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group ${file.isFolder ? 'cursor-pointer' : ''}`}
-          onClick={() => file.isFolder ? onFolderChange(file.id) : null}
-        >
-          <div className="col-span-6 flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 rounded-full hover:bg-yellow-400/10"
-              onClick={(e) => toggleStar(e, file.id)}
-            >
-              <Star 
-                className={`h-4 w-4 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} 
-              />
+      <Dialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Move to Trash?
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Are you sure you want to move <span className="font-bold text-foreground">&quot;{fileToDelete?.name}&quot;</span> to trash? 
+              {fileToDelete?.isFolder && " This will move all its contents too."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setFileToDelete(null)} className="rounded-xl">Cancel</Button>
+            <Button variant="destructive" onClick={deleteFile} disabled={isDeleting} className="rounded-xl">
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Move to Trash
             </Button>
-            {file.isFolder ? (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Folder className="w-5 h-5 text-primary fill-primary/10" />
-              </div>
-            ) : file.type.startsWith("image/") ? (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-                <Image src={file.fileUrl} alt={file.name} width={40} height={40} className="object-cover" />
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <FileText className="w-5 h-5 text-primary" />
-              </div>
-            )}
-            <span className="font-medium truncate text-sm">{file.name}</span>
-          </div>
-          <div className="col-span-2 text-xs text-muted-foreground">
-            {file.isFolder ? "—" : formatSize(file.size)}
-          </div>
-          <div className="col-span-3 text-xs text-muted-foreground">{formatDate(file.createdAt)}</div>
-          <div className="col-span-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
-            <FileActions file={file} />
-          </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!fileToPermanentDelete} onOpenChange={(open) => !open && setFileToPermanentDelete(null)}>
+        <DialogContent className="rounded-3xl border-destructive/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Delete Permanently?
+            </DialogTitle>
+            <DialogDescription className="text-base pt-2 text-destructive/80 font-medium">
+              This action CANNOT be undone. <span className="font-bold underline">&quot;{fileToPermanentDelete?.name}&quot;</span> will be gone forever.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setFileToPermanentDelete(null)} className="rounded-xl">Keep it</Button>
+            <Button variant="destructive" onClick={permanentDelete} disabled={isDeleting} className="rounded-xl">
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete Forever
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {files.map((file) => (
+            <Card 
+              key={file.id} 
+              className={`group border-none bg-card/40 backdrop-blur-md hover:bg-card/60 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-md ${file.isFolder && !showOnlyTrash ? 'cursor-pointer' : ''}`}
+              onClick={() => (file.isFolder && !showOnlyTrash) ? onFolderChange(file.id) : null}
+            >
+              <CardContent className="p-0">
+                <div className="aspect-video relative bg-muted/30 overflow-hidden flex items-center justify-center">
+                  {file.isFolder ? (
+                    <Folder className="w-16 h-16 text-primary/40 fill-primary/10" />
+                  ) : file.type.startsWith("image/") ? (
+                    <Image src={file.fileUrl} alt={file.name} fill className="object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <FileText className="w-12 h-12 text-muted-foreground/30" />
+                  )}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <FileActions 
+                      file={file} 
+                      onDelete={() => setFileToDelete(file)} 
+                      onRestore={() => restoreFile(file)}
+                      onPermanentDelete={() => setFileToPermanentDelete(file)}
+                      isTrashView={showOnlyTrash}
+                    />
+                  </div>
+                </div>
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-1 overflow-hidden">
+                    {!showOnlyTrash && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0 rounded-full hover:bg-yellow-400/10"
+                        onClick={(e) => toggleStar(e, file.id)}
+                      >
+                        <Star className={`h-3.5 w-3.5 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+                      </Button>
+                    )}
+                    <p className="font-medium truncate text-sm">{file.name}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                        {file.isFolder ? 'Folder' : formatSize(file.size)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{formatDate(file.createdAt)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      ))}
+      ) : (
+        <>
+          <div className="grid grid-cols-12 px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+            <div className="col-span-6">Name</div>
+            <div className="col-span-2">Size</div>
+            <div className="col-span-3">Date</div>
+            <div className="col-span-1"></div>
+          </div>
+          {files.map((file) => (
+            <div 
+              key={file.id} 
+              className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group ${file.isFolder && !showOnlyTrash ? 'cursor-pointer' : ''}`}
+              onClick={() => (file.isFolder && !showOnlyTrash) ? onFolderChange(file.id) : null}
+            >
+              <div className="col-span-6 flex items-center gap-2">
+                {!showOnlyTrash && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 rounded-full hover:bg-yellow-400/10"
+                    onClick={(e) => toggleStar(e, file.id)}
+                  >
+                    <Star className={`h-4 w-4 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+                  </Button>
+                )}
+                {file.isFolder ? (
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Folder className="w-5 h-5 text-primary fill-primary/10" />
+                  </div>
+                ) : file.type.startsWith("image/") ? (
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                    <Image src={file.fileUrl} alt={file.name} width={40} height={40} className="object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                )}
+                <span className="font-medium truncate text-sm">{file.name}</span>
+              </div>
+              <div className="col-span-2 text-xs text-muted-foreground">{file.isFolder ? "—" : formatSize(file.size)}</div>
+              <div className="col-span-3 text-xs text-muted-foreground">{formatDate(file.createdAt)}</div>
+              <div className="col-span-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                <FileActions 
+                  file={file} 
+                  onDelete={() => setFileToDelete(file)} 
+                  onRestore={() => restoreFile(file)}
+                  onPermanentDelete={() => setFileToPermanentDelete(file)}
+                  isTrashView={showOnlyTrash}
+                />
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
 
-function FileActions({ file }: { file: FileType }) {
+function FileActions({ file, onDelete, onRestore, onPermanentDelete, isTrashView }: { 
+  file: FileType, 
+  onDelete: () => void,
+  onRestore: () => void,
+  onPermanentDelete: () => void,
+  isTrashView: boolean
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -321,29 +468,44 @@ function FileActions({ file }: { file: FileType }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 rounded-xl">
-        {!file.isFolder && (
-          <DropdownMenuItem onClick={() => window.open(file.fileUrl, "_blank")} className="rounded-lg">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            <span>Open Original</span>
-          </DropdownMenuItem>
+        {isTrashView ? (
+          <>
+            <DropdownMenuItem onClick={onRestore} className="rounded-lg">
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              <span>Restore</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onPermanentDelete} className="text-destructive focus:text-destructive rounded-lg font-bold">
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Delete Permanently</span>
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            {!file.isFolder && (
+              <DropdownMenuItem onClick={() => window.open(file.fileUrl, "_blank")} className="rounded-lg">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                <span>Open Original</span>
+              </DropdownMenuItem>
+            )}
+            {!file.isFolder && (
+              <DropdownMenuItem onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = file.fileUrl;
+                  link.download = file.name;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+              }} className="rounded-lg">
+                <Download className="mr-2 h-4 w-4" />
+                <span>Download</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive focus:text-destructive rounded-lg" onClick={onDelete}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Move to Trash</span>
+            </DropdownMenuItem>
+          </>
         )}
-        {!file.isFolder && (
-          <DropdownMenuItem onClick={() => {
-              const link = document.createElement('a');
-              link.href = file.fileUrl;
-              link.download = file.name;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-          }} className="rounded-lg">
-            <Download className="mr-2 h-4 w-4" />
-            <span>Download</span>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuItem className="text-destructive focus:text-destructive rounded-lg">
-          <Trash2 className="mr-2 h-4 w-4" />
-          <span>Move to Trash</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
