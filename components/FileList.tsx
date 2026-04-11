@@ -39,6 +39,7 @@ interface FileListProps {
   parentId: string | null;
   refreshTrigger: number;
   onFolderChange: (folderId: string | null) => void;
+  onAction?: () => void;
   viewMode: "grid" | "list";
   showOnlyStarred?: boolean;
   showOnlyTrash?: boolean;
@@ -49,6 +50,7 @@ export default function FileList({
   parentId,
   refreshTrigger,
   onFolderChange,
+  onAction,
   viewMode,
   showOnlyStarred = false,
   showOnlyTrash = false,
@@ -143,6 +145,9 @@ export default function FileList({
            }
            return prev.map((f) => (f.id === fileId ? updatedFile : f));
         });
+
+        // Trigger refresh for stats
+        if (onAction) onAction();
       } catch (error) {
         console.error("Error toggling star:", error);
         setFiles((prev) => {
@@ -177,6 +182,9 @@ export default function FileList({
       toast.success(`${fileToDelete.isFolder ? "Folder" : "File"} moved to trash`, {
         description: `"${fileToDelete.name}" is now in your trash bin.`,
       });
+      
+      // Trigger refresh for stats
+      if (onAction) onAction();
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Error deleting file");
@@ -202,6 +210,9 @@ export default function FileList({
       toast.success(`${file.isFolder ? "Folder" : "File"} restored`, {
         description: `"${file.name}" has been restored to its original location.`,
       });
+
+      // Trigger refresh for stats
+      if (onAction) onAction();
     } catch (error) {
       console.error("Restore error:", error);
       toast.error("Error restoring file");
@@ -225,6 +236,9 @@ export default function FileList({
       toast.success(`${fileToPermanentDelete.isFolder ? "Folder" : "File"} deleted permanently`, {
         description: `"${fileToPermanentDelete.name}" has been removed forever.`,
       });
+
+      // Trigger refresh for stats
+      if (onAction) onAction();
     } catch (error) {
       console.error("Permanent delete error:", error);
       toast.error("Error deleting file permanently");
@@ -233,6 +247,7 @@ export default function FileList({
       setFileToPermanentDelete(null);
     }
   };
+
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -347,8 +362,15 @@ export default function FileList({
           {files.map((file) => (
             <Card 
               key={file.id} 
-              className={`group border-none bg-card/40 backdrop-blur-md hover:bg-card/60 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-md ${file.isFolder && !showOnlyTrash ? 'cursor-pointer' : ''}`}
-              onClick={() => (file.isFolder && !showOnlyTrash) ? onFolderChange(file.id) : null}
+              className={`group border-none bg-card/40 backdrop-blur-md hover:bg-card/60 transition-all rounded-2xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer`}
+              onClick={() => {
+                if (showOnlyTrash) return;
+                if (file.isFolder) {
+                  onFolderChange(file.id);
+                } else {
+                  window.open(file.fileUrl, "_blank");
+                }
+              }}
             >
               <CardContent className="p-0">
                 <div className="aspect-video relative bg-muted/30 overflow-hidden flex items-center justify-center">
@@ -405,8 +427,15 @@ export default function FileList({
           {files.map((file) => (
             <div 
               key={file.id} 
-              className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group ${file.isFolder && !showOnlyTrash ? 'cursor-pointer' : ''}`}
-              onClick={() => (file.isFolder && !showOnlyTrash) ? onFolderChange(file.id) : null}
+              className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group cursor-pointer`}
+              onClick={() => {
+                if (showOnlyTrash) return;
+                if (file.isFolder) {
+                  onFolderChange(file.id);
+                } else {
+                  window.open(file.fileUrl, "_blank");
+                }
+              }}
             >
               <div className="col-span-6 flex items-center gap-2">
                 {!showOnlyTrash && (

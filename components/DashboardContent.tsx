@@ -46,6 +46,12 @@ export default function DashboardContent({
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItemType[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [filter, setFilter] = useState<"all" | "starred" | "trash">("all");
+  const [stats, setStats] = useState({
+    totalFiles: 0,
+    totalFolders: 0,
+    totalStorage: 0,
+    totalStarred: 0,
+  });
 
   const handleRefresh = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
@@ -57,6 +63,22 @@ export default function DashboardContent({
       setFilter("all"); // Switch to all if entering a folder
     }
   }, []);
+
+  // 📊 Fetch Stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`/api/stats?userId=${userId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setStats(data);
+        }
+      } catch (error) {
+        console.error("Stats fetch error:", error);
+      }
+    };
+    fetchStats();
+  }, [userId, refreshTrigger]);
 
   // 🍞 Fetch folder path for breadcrumbs
   useEffect(() => {
@@ -80,6 +102,14 @@ export default function DashboardContent({
     fetchPath();
   }, [currentFolder]);
 
+  const formatSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Welcome Header */}
@@ -101,10 +131,10 @@ export default function DashboardContent({
       {/* Stats/Quick Actions (Optional Modern Touch) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total Files", value: "128", color: "bg-blue-500" },
-          { label: "Storage Used", value: "1.2 GB", color: "bg-purple-500" },
-          { label: "Folders", value: "12", color: "bg-orange-500" },
-          { label: "Shared", value: "5", color: "bg-green-500" },
+          { label: "Total Files", value: stats.totalFiles.toString(), color: "bg-blue-500" },
+          { label: "Storage Used", value: formatSize(stats.totalStorage), color: "bg-purple-500" },
+          { label: "Folders", value: stats.totalFolders.toString(), color: "bg-orange-500" },
+          { label: "Starred Items", value: stats.totalStarred.toString(), color: "bg-green-500" },
         ].map((stat, i) => (
           <Card
             key={i}
@@ -292,6 +322,7 @@ export default function DashboardContent({
                 parentId={currentFolder}
                 refreshTrigger={refreshTrigger}
                 onFolderChange={handleFolderChange}
+                onAction={handleRefresh}
                 viewMode={viewMode}
                 showOnlyStarred={filter === "starred"}
                 showOnlyTrash={filter === "trash"}
