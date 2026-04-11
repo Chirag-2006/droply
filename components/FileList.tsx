@@ -102,7 +102,7 @@ export default function FileList({
       clearTimeout(starDebounceRefs.current.get(fileId));
     }
 
-    // 4. Set a new 2-second timeout to perform the backend update
+    // 4. Set a new 1.5-second timeout to perform the backend update
     const timeoutId = setTimeout(async () => {
       starDebounceRefs.current.delete(fileId);
       
@@ -176,7 +176,7 @@ export default function FileList({
           <Trash2 className="w-8 h-8 text-destructive" />
         </div>
         <h3 className="text-lg font-semibold">Error loading files</h3>
-        <p className="text-muted-foreground max-w-[250px]">{error}</p>
+        <p className="text-muted-foreground max-w-62.5">{error}</p>
         <Button 
           variant="outline" 
           className="mt-4 rounded-xl"
@@ -195,7 +195,7 @@ export default function FileList({
           <FileText className="w-10 h-10 text-muted-foreground/50" />
         </div>
         <h3 className="text-lg font-semibold">No files found</h3>
-        <p className="text-muted-foreground max-w-[200px]">
+        <p className="text-muted-foreground max-w-50">
           {showOnlyStarred 
             ? "You haven't starred any files yet." 
             : parentId ? "This folder is empty." : "Start uploading your images to see them here."}

@@ -2,16 +2,24 @@
 
 import { useState, useCallback, useEffect, Fragment } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FileUp, FileText, LayoutGrid, List, Search, Home, Star } from "lucide-react";
+import {
+  FileUp,
+  FileText,
+  LayoutGrid,
+  List,
+  Search,
+  Home,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 
 import FileUploadForm from "@/components/FileUploadForm";
@@ -57,7 +65,9 @@ export default function DashboardContent({
         return;
       }
       try {
-        const response = await fetch(`/api/folders/path?folderId=${currentFolder}`);
+        const response = await fetch(
+          `/api/folders/path?folderId=${currentFolder}`,
+        );
         const data = await response.json();
         if (Array.isArray(data)) {
           setBreadcrumbs(data);
@@ -86,12 +96,12 @@ export default function DashboardContent({
           </p>
         </div>
 
-        <div className="flex gap-2 items-center">
+        {/* <div className="flex gap-2 items-center">
           <NewFolderDialog
             parentId={currentFolder}
             onSuccess={handleRefresh}
           />
-        </div>
+        </div> */}
       </div>
 
       {/* Stats/Quick Actions (Optional Modern Touch) */}
@@ -175,7 +185,9 @@ export default function DashboardContent({
                     setCurrentFolder(null);
                   }}
                 >
-                  <Star className={`h-3 w-3 ${filter === "starred" ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                  <Star
+                    className={`h-3 w-3 ${filter === "starred" ? "fill-yellow-400 text-yellow-400" : ""}`}
+                  />
                   Starred
                 </Button>
               </div>
@@ -202,26 +214,36 @@ export default function DashboardContent({
           </div>
 
           <Card className="border-none bg-card/40 backdrop-blur-md shadow-lg rounded-3xl min-h-100 overflow-hidden">
-            <CardHeader className="flex flex-row items-center gap-3 border-b border-border/50">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-                {filter === "starred" ? (
-                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500/20" />
-                ) : (
-                  <FileText className="h-5 w-5 text-purple-500" />
-                )}
+            <CardHeader className="flex items-center border-b border-border/50 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                  {filter === "starred" ? (
+                    <Star className="h-5 w-5 text-yellow-500 fill-yellow-500/20" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-purple-500" />
+                  )}
+                </div>
+                <h2 className="text-xl font-bold">
+                  {filter === "starred" ? "Starred Items" : "Recent Files"}
+                </h2>
               </div>
-              <h2 className="text-xl font-bold">
-                {filter === "starred" ? "Starred Items" : "Recent Files"}
-              </h2>
+              {filter === "all" && (
+                <div className="flex gap-2 items-center">
+                  <NewFolderDialog
+                    parentId={currentFolder}
+                    onSuccess={handleRefresh}
+                  />
+                </div>
+              )}
             </CardHeader>
-            
+
             {/* Breadcrumbs Navigation inside the Card */}
             {filter === "all" && (
               <div className="px-6 py-3 bg-muted/20 border-b border-border/30">
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem>
-                      <BreadcrumbLink 
+                      <BreadcrumbLink
                         className="cursor-pointer flex items-center gap-2 hover:text-primary transition-colors text-xs"
                         onClick={() => handleFolderChange(null)}
                       >
@@ -229,18 +251,18 @@ export default function DashboardContent({
                         Root
                       </BreadcrumbLink>
                     </BreadcrumbItem>
-                    
+
                     {breadcrumbs.map((crumb, index) => (
                       <Fragment key={crumb.id}>
                         <BreadcrumbSeparator />
                         <BreadcrumbItem>
                           {index === breadcrumbs.length - 1 ? (
-                            <BreadcrumbPage className="font-bold text-primary max-w-[120px] truncate text-xs">
+                            <BreadcrumbPage className="font-bold text-primary max-w-30 truncate text-xs">
                               {crumb.name}
                             </BreadcrumbPage>
                           ) : (
-                            <BreadcrumbLink 
-                              className="cursor-pointer hover:text-primary transition-colors max-w-[120px] truncate text-xs"
+                            <BreadcrumbLink
+                              className="cursor-pointer hover:text-primary transition-colors max-w-30 truncate text-xs"
                               onClick={() => handleFolderChange(crumb.id)}
                             >
                               {crumb.name}
