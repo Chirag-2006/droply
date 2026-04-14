@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 // MOVE TO TRASH (PATCH)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -47,7 +47,7 @@ export async function PATCH(
 // PERMANENT DELETE (DELETE)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();

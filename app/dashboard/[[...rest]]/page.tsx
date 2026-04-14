@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DashboardContent from "@/components/DashboardContent";
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ rest: string[] }>;
+}) {
+  const { rest } = await params;
   const { userId } = await auth();
 
   if (!userId) {
