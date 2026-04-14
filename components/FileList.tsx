@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import Image from "next/image";
+import { FileGridSkeleton, FileSkeleton } from "./skeletons/FileSkeleton";
 
 interface FileListProps {
   userId: string;
@@ -267,10 +268,9 @@ export default function FileList({
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground">Loading your files...</p>
+    return viewMode === "grid" ? <FileGridSkeleton /> : (
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5].map(i => <FileSkeleton key={i} />)}
       </div>
     );
   }

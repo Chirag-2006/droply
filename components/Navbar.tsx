@@ -8,6 +8,7 @@ import { CloudUpload, Menu, X, LayoutDashboard, FileUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleTheme } from "./ToggleTheme";
+import { NavbarSkeleton } from "./skeletons/NavbarSkeleton";
 
 export default function Navbar() {
   const { isLoaded } = useUser();
@@ -28,7 +29,7 @@ export default function Navbar() {
   }, []);
 
   if (!isLoaded) {
-    return null;
+    return <NavbarSkeleton />;
   }
 
   return (

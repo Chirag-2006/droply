@@ -21,12 +21,13 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/Footer";
+import { HomeSkeleton } from "@/components/skeletons/HomeSkeleton";
 
 export default function Home() {
   const { isLoaded } = useUser();
 
   if (!isLoaded) {
-    return null;
+    return <HomeSkeleton />;
   }
 
   return (
@@ -221,29 +222,6 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      {/* <footer className="border-t py-12 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <CloudUpload className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold tracking-tighter">Droply</h2>
-            </div>
-            
-            <nav className="flex gap-8 text-sm font-medium text-muted-foreground">
-              <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Twitter</Link>
-              <Link href="#" className="hover:text-primary transition-colors">GitHub</Link>
-            </nav>
-
-            <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Droply. Crafted with love.
-            </p>
-          </div>
-        </div>
-      </footer> */}
       <Footer />
     </div>
   );

@@ -183,6 +183,7 @@ export default function DashboardContent({
                 <Input
                   className="pl-9 bg-transparent border-none focus-visible:ring-0"
                   placeholder="Search files..."
+                  suppressHydrationWarning
                 />
               </div>
             </div>
