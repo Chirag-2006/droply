@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSignIn } from "@clerk/nextjs";
 
 // zod custom schema
-import { signInSchem, SignInSchemaType } from "@/zod/signInSchema";
+import { signInSchema, SignInSchemaType } from "@/zod/signInSchema";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -33,7 +33,7 @@ export function SignInForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<SignInSchemaType>({
-    resolver: zodResolver(signInSchem),
+    resolver: zodResolver(signInSchema),
     defaultValues: {
       identifier: "",
       password: "",
@@ -123,6 +123,7 @@ export function SignInForm() {
                 placeholder="your.email@example.com"
                 className="pl-9"
                 {...register("identifier")}
+                suppressHydrationWarning
               />
             </div>
             {errors.identifier && (
@@ -146,6 +147,7 @@ export function SignInForm() {
                 placeholder="••••••••"
                 className="pl-9 pr-10"
                 {...register("password")}
+                suppressHydrationWarning
               />
               <button
                 type="button"

@@ -176,20 +176,18 @@ export default function DashboardContent({
 
         {/* File Explorer Section */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="flex justify-between items-center gap-4 bg-card/40 backdrop-blur-md p-2 rounded-2xl border border-border/50">
-            <div className="flex items-center gap-2 flex-1">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9 bg-transparent border-none focus-visible:ring-0"
-                  placeholder="Search files..."
-                  suppressHydrationWarning
-                />
-              </div>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-card/40 backdrop-blur-md p-3 md:p-2 rounded-2xl border border-border/50">
+            <div className="relative w-full md:max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9 bg-transparent border-none focus-visible:ring-0 w-full"
+                placeholder="Search files..."
+                suppressHydrationWarning
+              />
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1 p-1 bg-muted/50 rounded-xl mr-2">
+            <div className="flex flex-wrap items-center justify-between w-full md:w-auto gap-2">
+              <div className="flex gap-1 p-1 bg-muted/50 rounded-xl overflow-x-auto no-scrollbar">
                 <Button
                   variant={filter === "all" ? "secondary" : "ghost"}
                   size="sm"

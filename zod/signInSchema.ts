@@ -1,6 +1,6 @@
 import * as z from "zod";
 
-export const signInSchem = z.object({
+export const signInSchema = z.object({
   identifier: z
     .string()
     .min(1, { error: "email is required" })
@@ -12,4 +12,4 @@ export const signInSchem = z.object({
     .min(8, { error: "Password must be at least 8 characters" }),
 });
 
-export type SignInSchemaType = z.infer<typeof signInSchem>;
+export type SignInSchemaType = z.infer<typeof signInSchema>;
