@@ -134,7 +134,8 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t p-4 space-y-3 bg-background/95 backdrop-blur-md rounded-b-2xl">
+        <div className="md:hidden border-t p-4 space-y-4 bg-background/95 backdrop-blur-md rounded-b-2xl">
+          <div className="flex flex-col gap-2">
           <Show when={"signed-out"}>
             <Link href="/sign-in" onClick={() => setIsMobileMenuOpen(false)}>
               <Button variant="outline" className="w-full rounded-xl">
@@ -147,6 +148,7 @@ export default function Navbar() {
               </Button>
             </Link>
           </Show>
+          </div>
 
           <Show when={"signed-in"}>
             {isOnDashboard ? (

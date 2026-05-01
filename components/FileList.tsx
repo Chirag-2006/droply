@@ -417,17 +417,17 @@ export default function FileList({
           ))}
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-12 px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider border-b border-border/50">
+        <div className="flex flex-col gap-1">
+          <div className="hidden md:grid grid-cols-12 px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/30">
             <div className="col-span-6">Name</div>
             <div className="col-span-2">Size</div>
-            <div className="col-span-3">Date</div>
+            <div className="col-span-3">Date Modified</div>
             <div className="col-span-1"></div>
           </div>
           {files.map((file) => (
             <div 
               key={file.id} 
-              className={`grid grid-cols-12 items-center px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors group cursor-pointer`}
+              className={`flex md:grid md:grid-cols-12 items-center px-4 py-3 rounded-2xl hover:bg-muted/40 transition-all group cursor-pointer border border-transparent hover:border-border/50`}
               onClick={() => {
                 if (showOnlyTrash) return;
                 if (file.isFolder) {
@@ -437,35 +437,46 @@ export default function FileList({
                 }
               }}
             >
-              <div className="col-span-6 flex items-center gap-2">
+              <div className="flex-1 md:col-span-6 flex items-center gap-3 min-w-0">
                 {!showOnlyTrash && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 rounded-full hover:bg-yellow-400/10"
+                    className="h-8 w-8 shrink-0 rounded-full hover:bg-yellow-400/10  md:flex"
                     onClick={(e) => toggleStar(e, file.id)}
                   >
                     <Star className={`h-4 w-4 ${file.isStarred ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
                   </Button>
                 )}
-                {file.isFolder ? (
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Folder className="w-5 h-5 text-primary fill-primary/10" />
+                <div className="relative shrink-0">
+                   {file.isFolder ? (
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Folder className="w-5 h-5 text-primary fill-primary/10" />
+                    </div>
+                  ) : file.type.startsWith("image/") ? (
+                    <div className="w-10 h-10 rounded-xl bg-muted overflow-hidden flex items-center justify-center">
+                      <Image src={file.fileUrl} alt={file.name} width={40} height={40} className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-semibold truncate text-sm md:text-base">{file.name}</span>
+                  <div className="flex items-center gap-2 md:hidden">
+                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                       {file.isFolder ? 'Folder' : formatSize(file.size)}
+                     </span>
+                     <span className="text-[10px] text-muted-foreground/60">•</span>
+                     <span className="text-[10px] text-muted-foreground">{formatDate(file.createdAt)}</span>
                   </div>
-                ) : file.type.startsWith("image/") ? (
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-                    <Image src={file.fileUrl} alt={file.name} width={40} height={40} className="object-cover" />
-                  </div>
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <FileText className="w-5 h-5 text-primary" />
-                  </div>
-                )}
-                <span className="font-medium truncate text-sm">{file.name}</span>
+                </div>
               </div>
-              <div className="col-span-2 text-xs text-muted-foreground">{file.isFolder ? "—" : formatSize(file.size)}</div>
-              <div className="col-span-3 text-xs text-muted-foreground">{formatDate(file.createdAt)}</div>
-              <div className="col-span-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
+              <div className="hidden md:block col-span-2 text-xs font-medium text-muted-foreground uppercase tracking-tighter">{file.isFolder ? "—" : formatSize(file.size)}</div>
+              <div className="hidden md:block col-span-3 text-xs font-medium text-muted-foreground">{formatDate(file.createdAt)}</div>
+              <div className="shrink-0 md:col-span-1 flex justify-end" onClick={(e) => e.stopPropagation()}>
                 <FileActions 
                   file={file} 
                   onDelete={() => setFileToDelete(file)} 
@@ -476,7 +487,7 @@ export default function FileList({
               </div>
             </div>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
