@@ -1,5 +1,7 @@
 # 📁 Droply – File Storage & Management System
 
+![](https://ik.imagekit.io/yzmz5axge/droply/droply.png)
+
 ### **A Scalable, Enterprise-Grade Cloud Asset Management Platform**
 
 **Droply** is a high-performance file management system engineered for modern workflows. Inspired by Dropbox, it empowers users to securely upload, organize, and manage digital assets within a sophisticated, recursive folder architecture. Built with **Next.js 15**, **Drizzle ORM**, and **ImageKit**, Droply focuses on providing a "zero-latency" feel through advanced loading states and optimized database queries.
